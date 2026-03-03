@@ -21,11 +21,9 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
   const { theme, toggle } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Use server-provided from/to for data — these are always in sync with dictionary prop
   const fromParam = from;
   const toParam   = to;
 
-  // Read script from URL (client-only concern, doesn't affect which data we have)
   const isRussian = fromParam === ("ru");
   const script    = isRussian
     ? "cyr"
@@ -223,7 +221,7 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
 
         {query.length > 0 && filteredWords.length === 0 && (
           <p style={{ marginTop: "15px", color: "#ff0000", textAlign: "center" }}>
-            Siz izlegen "{query}" sóziniń awdarması tabılmadı
+            Не найдено перевода для слова "{query}"
           </p>
         )}
       </div>

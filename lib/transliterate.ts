@@ -8,7 +8,6 @@ function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Normalize apostrophe-like characters used in Latin orthographies
 const APOSTROPHES = /[\u2018\u2019\u02BC\u02BB`']/g;
 
 function normalizeApostrophes(input: string) {
@@ -17,7 +16,6 @@ function normalizeApostrophes(input: string) {
 
 function ensureRegex(from: RegExp | string): RegExp {
   if (from instanceof RegExp) {
-    // ensure global flag
     const flags = from.flags.includes("g") ? from.flags : from.flags + "g";
     return new RegExp(from.source, flags);
   } else {
@@ -38,17 +36,7 @@ function applyMap(text: string, map: MapEntry[]): string {
   return result;
 }
 
-/* ----------------
-   Uzbek Latin -> Cyrillic
-   ----------------
-   Notes:
-   - Normalize apostrophes first.
-   - Use case-preserving replacers for digraphs so SH/Ch/NG/TS etc work in all-caps.
-*/
-
 const UZ_LAT_TO_CYR: MapEntry[] = [
-
-  // digraphs — use case-insensitive with replacer to preserve case
   [/ya/gi, (m: string) => m === m.toUpperCase() ? "Я" : m[0] === m[0].toUpperCase() ? "Я" : "я"],
   [/O'/g, "Ў"], [/o'/g, "ў"],
   [/yo/gi, (m: string) => m === m.toUpperCase() ? "Ё" : m[0] === m[0].toUpperCase() ? "Ё" : "ё"],
@@ -61,7 +49,6 @@ const UZ_LAT_TO_CYR: MapEntry[] = [
   [/G'/g, "Ғ"], [/g'/g, "ғ"],
   [/'/g, "Ъ"],
 
-  // singles
   [/A/g, "А"], [/a/g, "а"],
   [/B/g, "Б"], [/b/g, "б"],
   [/D/g, "Д"], [/d/g, "д"],
@@ -90,7 +77,6 @@ const UZ_LAT_TO_CYR: MapEntry[] = [
 
 const KAA_LAT_TO_CYR: MapEntry[] = [
 
-  // digraphs (case-preserving)
   [/ya/gi, (m: string) => m === m.toUpperCase() ? "Я" : m[0] === m[0].toUpperCase() ? "Я" : "я"],
   [/yo/gi, (m: string) => m === m.toUpperCase() ? "Ё" : m[0] === m[0].toUpperCase() ? "Ё" : "ё"],
   [/yu/gi, (m: string) => m === m.toUpperCase() ? "Ю" : m[0] === m[0].toUpperCase() ? "Ю" : "ю"],
@@ -99,14 +85,12 @@ const KAA_LAT_TO_CYR: MapEntry[] = [
   [/ch/gi, (m: string) => (m === m.toUpperCase() ? "Ч" : "ч")],
   [/ts/gi, (m: string) => (m === m.toUpperCase() ? "Ц" : "ц")],
 
-  // specials (Ä,Ǵ,Ń,Ó,Ú) — use case-insensitive with direct mapping preserving case
-  [/á/gi, (m: string) => (m === m.toUpperCase() ? "Ә" : "ә")], // adjust to preferred Cyrillic char
+  [/á/gi, (m: string) => (m === m.toUpperCase() ? "Ә" : "ә")],
   [/ǵ/gi, (m: string) => (m === m.toUpperCase() ? "Ғ" : "ғ")],
   [/ń/gi, (m: string) => (m === m.toUpperCase() ? "Ң" : "ң")],
   [/ó/gi, (m: string) => (m === m.toUpperCase() ? "Ө" : "ө")],
   [/ú/gi, (m: string) => (m === m.toUpperCase() ? "Ү" : "ү")],
 
-  // singles — same as earlier (you can factor these out to avoid duplication)
   [/A/g, "А"], [/a/g, "а"],
   [/B/g, "Б"], [/b/g, "б"],
   [/D/g, "Д"], [/d/g, "д"],
@@ -115,7 +99,7 @@ const KAA_LAT_TO_CYR: MapEntry[] = [
   [/G/g, "Г"], [/g/g, "г"],
   [/H/g, "Х"], [/h/g, "х"],
   [/Í/g, "Ы"], [/ı/g, "ы"],
-  [/I/g, "И"], [/i/g, "и"],
+  [/I/g, "I"], [/i/g, "и"],
   [/J/g, "Ж"], [/j/g, "ж"],
   [/K/g, "К"], [/k/g, "к"],
   [/Q/g, "Қ"], [/q/g, "қ"],
@@ -136,12 +120,10 @@ const KAA_LAT_TO_CYR: MapEntry[] = [
 ];
 
 export function toLatin(text: string, _lang: LangCode): string {
-  // TODO: implement reverse mapping (cyr->lat) when needed. For now return input.
   return text;
 }
 
 export function toCyrillic(input: string, lang: LangCode): string {
-  // normalize apostrophes to a single kind first (important for Uzbek oʻ/gʻ)
   const text = normalizeApostrophes(input);
   const map = lang === "uz" ? UZ_LAT_TO_CYR : KAA_LAT_TO_CYR;
   return applyMap(text, map);
@@ -157,10 +139,6 @@ export function convertScript(text: string, lang: LangCode, script: Script): str
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// UZBEK  Cyrillic → Latin  (reverse of UZ_LAT_TO_CYR)
-// Digraphs that came from two-char sequences must be handled first
-// ─────────────────────────────────────────────────────────────────
 const UZ_CYR_TO_LAT: [RegExp, string][] = [
   [/Я/g,"YA"],[/я/g,"ya"],
   [/Ё/g,"YO"],[/ё/g,"yo"],
@@ -175,7 +153,7 @@ const UZ_CYR_TO_LAT: [RegExp, string][] = [
   [/Е/g,"E"],[/е/g,"e"],
   [/Э/g,"E"],[/э/g,"e"],
   [/Ф/g,"F"],[/ф/g,"f"],
-  [/Ғ/g,"Gʻ"],[/ғ/g,"g‘"],   // or g' — match what's in your data
+  [/Ғ/g,"Gʻ"],[/ғ/g,"g‘"],   
   [/Г/g,"G"],[/г/g,"g"],
   [/Ҳ/g,"H"],[/ҳ/g,"h"],
   [/И/g,"I"],[/и/g,"i"],
@@ -184,7 +162,7 @@ const UZ_CYR_TO_LAT: [RegExp, string][] = [
   [/Л/g,"L"],[/л/g,"l"],
   [/М/g,"M"],[/м/g,"m"],
   [/Н/g,"N"],[/н/g,"n"],
-  [/Ў/g,"Oʻ"],[/ў/g,"oʻ"],   // or o'
+  [/Ў/g,"Oʻ"],[/ў/g,"oʻ"],
   [/О/g,"O"],[/о/g,"o"],
   [/П/g,"P"],[/п/g,"p"],
   [/Қ/g,"Q"],[/қ/g,"q"],
@@ -199,9 +177,6 @@ const UZ_CYR_TO_LAT: [RegExp, string][] = [
   [/Ъ/g,"’"],[/ъ/g,"’"],
 ];
 
-// ─────────────────────────────────────────────────────────────────
-// KARAKALPAK  Cyrillic → Latin
-// ─────────────────────────────────────────────────────────────────
 const KAA_CYR_TO_LAT: [RegExp, string][] = [
   [/Я/g,"YA"],[/я/g,"ya"],
   [/Ё/g,"YO"],[/ё/g,"yo"],
@@ -221,7 +196,7 @@ const KAA_CYR_TO_LAT: [RegExp, string][] = [
   [/Е/g,"E"],[/е/g,"e"],
   [/Ф/g,"F"],[/ф/g,"f"],
   [/Г/g,"G"],[/г/g,"g"],
-  [/Х/g,"H"],[/х/g,"h"],
+  [/Х/g,"X"],[/х/g,"x"],
   [/И/g,"I"],[/и/g,"i"],
   [/Ж/g,"J"],[/ж/g,"j"],
   [/К/g,"K"],[/к/g,"k"],
@@ -240,6 +215,9 @@ const KAA_CYR_TO_LAT: [RegExp, string][] = [
   [/З/g,"Z"],[/з/g,"z"],
   [/Ы/g,"Í"],[/ы/g,"ı"],
   [/Ў/g,"W"],[/ў/g,"w"],
+  [/Ҳ/g,"H"],[/ҳ/g,"h"],
+  [/Ь/g,""],[/ь/g,""],
+  [/Ъ/g,"Y"],[/ъ/g,"y"],
 ];
 
 export function toLatinFromCyrillic(text: string, lang: LangCode): string {

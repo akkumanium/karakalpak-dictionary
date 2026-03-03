@@ -16,24 +16,18 @@ type Token = { type: "text" | "b" | "i"| "br"; content: string };
 
 function tokenize(html: string): Token[] {
   const tokens: Token[] = [];
-  // Group 1 & 2: b/i and content | Group 3: br
   const regex = /<(b|i)>(.*?)<\/\1>|<(br)\s*\/?>/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(html)) !== null) {
-    // 1. Handle preceding text
     if (match.index > lastIndex) {
       const text = html.slice(lastIndex, match.index);
       if (text) tokens.push({ type: "text", content: text });
     }
-
-    // 2. Distinguish between paired tags and void tags
     if (match[3] === "br") {
-      // It's a <br>, so type is "br" and content is empty
       tokens.push({ type: "br", content: "" });
     } else {
-      // It's a <b> or <i>
       tokens.push({ 
         type: match[1] as "b" | "i", 
         content: match[2] || "" 
@@ -43,7 +37,6 @@ function tokenize(html: string): Token[] {
     lastIndex = regex.lastIndex;
   }
 
-  // 3. Handle trailing text
   if (lastIndex < html.length) {
     tokens.push({ type: "text", content: html.slice(lastIndex) });
   }
@@ -55,26 +48,26 @@ const isMainNum = (s: string) => /^\s*\d+\.\s*$/.test(s);
 const isSubNum  = (s: string) => /^\s*\d+\)\s*$/.test(s);
 
 function TranslationHtml({ html, lang, script }: { html: string; lang: LangCode; script: Script }) {
-  const tokens = tokenize(html);
+  const processedHtml = html.replace(/;/g, ';<br/>');
+
+  const tokens = tokenize(processedHtml);
+  
   const nodes: React.ReactNode[] = [];
   tokens.forEach((t, i) => {
     if (t.type === "b") {
       if (isMainNum(t.content)) {
-        if (i > 0) nodes.push(<br key={`br-${i}`} />);
         nodes.push(
           <strong key={i} style={{ marginRight: 4 }}>
             {t.content.trim()}
           </strong>
         );
       } else if (isSubNum(t.content)) {
-        nodes.push(<br key={`br-${i}`} />);
         nodes.push(
           <strong key={i} style={{ marginLeft: "1.5em", marginRight: 4 }}>
             {t.content.trim()}
           </strong>
         );
       } else {
-        nodes.push(<br key={`br-${i}`} />);
         nodes.push(
           <strong key={i} style={{ marginLeft: "1em" }}>
             {t.content}
@@ -93,6 +86,7 @@ function TranslationHtml({ html, lang, script }: { html: string; lang: LangCode;
       nodes.push(<span key={i}>{convertScript(t.content, lang, script)}</span>);
     }
   });
+  
   return <div style={{ lineHeight: 1.9, fontSize: 17, color: "var(--fg)" }}>{nodes}</div>;
 }
 
@@ -134,7 +128,7 @@ export default async function WordPage({ params }: { params: Promise<Params> }) 
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <Link href={backHref} style={{ color: "var(--fg-subtle)", textDecoration: "none", fontSize: "14px" }}>
-          ← Back to Search
+          ← Basqa sóz izlew
         </Link>
 
         <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "6px", overflow: "hidden" }}>
