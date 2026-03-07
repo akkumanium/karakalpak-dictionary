@@ -54,13 +54,20 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
   const normalizeApostrophes = (s: string) =>
     s.replace(/[\u0027\u0060\u2019\u2018\u02BC\u02BB\u201B\uFF07]/g, "'");
 
-  const normalize = (str: string) => normalizeApostrophes(str).toUpperCase();
+const normalize = (str: string) => 
+  normalizeApostrophes(str)
+    .replace(/ё/gi, "е")
+    .toUpperCase();
 
-  const normalizeForSearch = (str: string, inputScript: Script) => {
-    if (isRussian) return normalizeApostrophes(str).toUpperCase();
-    const latin = inputScript === "cyr" ? toLatinFromCyrillic(str, fromParam) : str;
-    return normalizeApostrophes(latin).toUpperCase();
-  };
+const normalizeForSearch = (str: string, inputScript: Script) => {
+  if (isRussian) return normalize(str); 
+  
+  const latin = inputScript === "cyr" 
+    ? toLatinFromCyrillic(str, fromParam) 
+    : str;
+    
+  return normalize(latin);
+};
 
   const filteredWords = useMemo(() => {
     if (!isPairValid) return [];
@@ -97,7 +104,7 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
       </div>
 
       <h1 style={{ textAlign: "center", fontWeight: "400", color: "var(--fg)" }}>
-        {LANG_NAMES[fromParam][script]} – {LANG_NAMES[toParam][script]} Dictionary
+        {LANG_NAMES[fromParam]["lat"]} – {LANG_NAMES[toParam]["lat"]} Sózligi
       </h1>
 
       {/* ── Settings bar ── */}
@@ -165,7 +172,7 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
           type="text"
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
-          placeholder="Search for a word..."
+          placeholder="Sóz izleń..."
           autoFocus
           style={{
             width: "100%", padding: "12px 15px", fontSize: "18px",
@@ -221,7 +228,7 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
 
         {query.length > 0 && filteredWords.length === 0 && (
           <p style={{ marginTop: "15px", color: "#ff0000", textAlign: "center" }}>
-            Не найдено перевода для слова "{query}"
+            "{query}" sóziniń awdarması tabılmadı
           </p>
         )}
       </div>
