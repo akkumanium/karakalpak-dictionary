@@ -8,18 +8,25 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: { 
-    default: "O'zbekcha–Qoraqalpoqcha lug'at | Узбекско-каракалпакский словарь", 
-    template: "%s | O'zbekcha–Qoraqalpoqcha lug'at" 
+    default: "O'zbekcha–Qaraqalpaqsha sózlik / lugʻat | Узбекско-каракалпакский словарь", 
+    template: "%s | O'zbekcha–Qaraqalpaqsha sózlik" 
   },
-  description: "Bepul onlayn o'zbekcha-qoraqalpoqcha lug'at. O'zbek tilidagi so'zlarni qidiring va qoraqalpoqcha tarjimasini toping. Бесплатный узбекско-каракалпакский словарь онлайн.",
+  description: "Pulsız onlayn qaraqalpaqsha sózlik. Bepul onlayn qoraqalpoqcha lugʻat. Бесплатный каракалпакский словарь онлайн.",
   keywords: [
-    "o'zbekcha lug'at", "qoraqalpoqcha lug'at", "uzbekcha qoraqalpoqcha tarjima", 
-    "узбекский словарь", "каракалпакский словарь", "перевод узбекский каракалпакский",
-    "ózbek-qaraqalpaq sózligi", "qaraqalpaqsha sózlik", "onlayn lug'at"
+  "o'zbekcha lug'at",
+  "qoraqalpoqcha lug'at",
+  "uzbekcha qoraqalpoqcha tarjima",
+  "ózbek-qaraqalpaq sózligi",
+  "qaraqalpaqsha sózlik",
+  "қарақалпақша сөзлик",
+  "өзбекше қарақалпақша сөзлик",
+  "узбекский каракалпакский словарь",
+  "перевод узбекский каракалпакский",
+  "onlayn lug'at"
   ],
   openGraph: {
-    title: "O'zbekcha–Qoraqalpoqcha lug'at (Uzbek–Karakalpak Dictionary)",
-    description: "O'zbek tilidagi so'zlarni qidiring va qoraqalpoqcha tarjimasini darhol toping.",
+    title: "O'zbekcha–Qaraqalpaqsha sózlik / lugʻat | Узбекско-каракалпакский словарь",
+    description: "Pulsız onlayn qaraqalpaqsha sózlik. Bepul onlayn qoraqalpoqcha lugʻat. Бесплатный каракалпакский словарь онлайн.",
     type: "website",
     locale: "uz_UZ",
   },
