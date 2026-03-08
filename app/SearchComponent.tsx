@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { type DictionaryEntry } from "../lib/dictionary";
@@ -31,6 +31,7 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
 
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
   useEffect(() => setMounted(true), []);
 
   const isPairValid = availablePairs.includes(`${fromParam}-${toParam}`);
@@ -47,7 +48,9 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
     let detectedScript: Script = script;
     if (val.length > 0) detectedScript = hasCyrillic ? "cyr" : "lat";
     if (detectedScript !== script) {
-      router.replace(buildParams({ script: detectedScript }), { scroll: false });
+      startTransition(() => {
+        router.replace(buildParams({ script: detectedScript }), { scroll: false });
+      });
     }
   };
 
@@ -88,6 +91,32 @@ const normalizeForSearch = (str: string, inputScript: Script) => {
   return (
     <main style={{ maxWidth: "600px", margin: "10vh auto", fontFamily: "system-ui, sans-serif", padding: "0 20px" }}>
 
+      {/* ── Loading overlay ── */}
+      {isPending && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 50,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backgroundColor: "rgba(0,0,0,0.25)",
+          backdropFilter: "blur(2px)",
+        }}>
+          <div style={{
+            backgroundColor: "var(--bg)",
+            color: "var(--fg)",
+            padding: "20px 36px",
+            borderRadius: "12px",
+            fontSize: "16px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}>
+            <span style={{ fontSize: "20px", animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
+            Loading dictionary…
+          </div>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
       {/* ── Dark mode toggle ── */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
         <button
@@ -113,7 +142,9 @@ const normalizeForSearch = (str: string, inputScript: Script) => {
           value={`${fromParam}-${toParam}`}
           onChange={(e) => {
             const [from, to] = e.target.value.split("-");
-            router.push(buildParams({ from, to }));
+            startTransition(() => {
+              router.push(buildParams({ from, to }));
+            });
           }}
           style={{
             padding: "8px 12px", borderRadius: "6px",
