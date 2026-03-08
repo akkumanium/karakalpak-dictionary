@@ -1,22 +1,8 @@
 // lib/dictionary.ts (server-only)
-
 import "server-only";
 import path from "path";
 import fs from "fs/promises";
-
-export async function GET() {
-  try {
-    const filePath = path.join(process.cwd(), "data", "dictionary.json");
-
-    const raw = await fs.readFile(filePath, "utf8");
-    const json = JSON.parse(raw);
-
-    return Response.json(json);
-  } catch (err) {
-    console.error(err);
-    return Response.json(null, { status: 500 });
-  }
-}
+import { LRUCache } from "lru-cache";
 
 export interface DictionaryEntry {
   source: string;
@@ -29,66 +15,79 @@ const FILES: Record<string, { filePath: string; sourceKey: string; targetKey: st
 };
 
 type Cached = { list: DictionaryEntry[]; map: Map<string, DictionaryEntry> };
-const CACHE: Record<string, Cached | undefined> = {};
 
-async function loadPair(pair: string): Promise<Cached | null> {
-  if (CACHE[pair]) return CACHE[pair]!;
+const cache = new LRUCache<string, Cached>({ max: 50 });
+const inFlight = new Map<string, Promise<Cached | null>>();
 
-  const config = FILES[pair];
-  if (!config) return null;
+async function loadPairFromDisk(pair: string): Promise<Cached | null> {
+  const cfg = FILES[pair];
+  if (!cfg) return null;
 
-  let raw: any[];
-  try {
-    raw = JSON.parse(await fs.readFile(config.filePath, "utf8"));
-  } catch {
-    return null;
-  }
+  const cached = cache.get(pair);
+  if (cached) return cached;
 
-  const map = new Map<string, DictionaryEntry>();
-  const list: DictionaryEntry[] = [];
+  const existing = inFlight.get(pair);
+  if (existing) return existing;
 
-  for (const e of raw) {
-    const source = String(e[config.sourceKey] ?? "").normalize("NFC").trim();
-    if (!source) continue;
+  const promise = (async () => {
+    try {
+      const raw = await fs.readFile(cfg.filePath, "utf8");
+      const arr = JSON.parse(raw);
 
-    const rawTarget = e[config.targetKey];
-    const karakalpak: string[] = Array.isArray(rawTarget)
-        ? rawTarget
-        : rawTarget
-        ? [String(rawTarget)]
-        : [];
+      if (!Array.isArray(arr)) throw new Error(`Expected array in ${cfg.filePath}`);
 
-    const key = source.toLowerCase();
-    const existing = map.get(key);
+      const map = new Map<string, DictionaryEntry>();
+      const list: DictionaryEntry[] = [];
 
-    if (existing) {
-        existing.karakalpak.push(...karakalpak);
-    } else {
-        const entry: DictionaryEntry = { source, karakalpak: [...karakalpak] };
-        map.set(key, entry);
-        list.push(entry);
+      for (const e of arr) {
+        const source = String(e[cfg.sourceKey] ?? "").normalize("NFC").trim();
+        if (!source) continue;
+
+        const key = source.toLocaleLowerCase("tr").trim();
+
+        const rawTarget = e[cfg.targetKey];
+        const targets = Array.isArray(rawTarget)
+          ? rawTarget.map(String)
+          : rawTarget
+          ? [String(rawTarget)]
+          : [];
+
+        const existing = map.get(key);
+        if (existing) {
+          const set = new Set(existing.karakalpak);
+          for (const t of targets) set.add(t);
+          existing.karakalpak = Array.from(set);
+        } else {
+          const entry: DictionaryEntry = { source, karakalpak: Array.from(new Set(targets)) };
+          map.set(key, entry);
+          list.push(entry);
+        }
+      }
+
+      const result: Cached = { list, map };
+      cache.set(pair, result);
+      return result;
+    } catch (err) {
+      console.error("Failed to load dictionary pair", pair, err);
+      return null;
+    } finally {
+      inFlight.delete(pair);
     }
+  })();
+
+  inFlight.set(pair, promise);
+  return promise;
 }
 
-  CACHE[pair] = { list, map };
-  return CACHE[pair]!;
-}
-
-export async function getDictionaryEntry(
-  from: string,
-  to: string,
-  word: string
-): Promise<DictionaryEntry | null> {
-  const data = await loadPair(`${from}-${to}`);
+export async function getDictionaryEntry(from: string, to: string, word: string): Promise<DictionaryEntry | null> {
+  const data = await loadPairFromDisk(`${from}-${to}`);
   if (!data) return null;
-  return data.map.get(word.normalize("NFC").toLowerCase().trim()) ?? null;
+  const key = word.normalize("NFC").toLocaleLowerCase("tr").trim();
+  return data.map.get(key) ?? null;
 }
 
-export async function getDictionaryList(
-  from: string,
-  to: string
-): Promise<DictionaryEntry[] | null> {
-  const data = await loadPair(`${from}-${to}`);
+export async function getDictionaryList(from: string, to: string): Promise<DictionaryEntry[] | null> {
+  const data = await loadPairFromDisk(`${from}-${to}`);
   return data?.list ?? null;
 }
 

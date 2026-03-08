@@ -17,11 +17,15 @@ export const metadata: Metadata = {
   "qoraqalpoqcha lug'at",
   "uzbekcha qoraqalpoqcha tarjima",
   "ózbek-qaraqalpaq sózligi",
+  "rus-qaraqalpaq sózligi",
   "qaraqalpaqsha sózlik",
   "қарақалпақша сөзлик",
   "өзбекше қарақалпақша сөзлик",
   "узбекский каракалпакский словарь",
   "перевод узбекский каракалпакский",
+  "русша қарақалпақша сөзлик",
+  "русский каракалпакский словарь",
+  "перевод русский каракалпакский",
   "onlayn lug'at"
   ],
   openGraph: {
