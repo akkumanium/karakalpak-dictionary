@@ -1,21 +1,20 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { type DictionaryEntry } from "../lib/dictionary";
 import { DIRECTIONS, LANG_NAMES, type Script, type LangCode } from "../lib/languages";
-import { convertScript, toLatinFromCyrillic } from "../lib/transliterate";
+import { convertScript } from "../lib/transliterate";
 import { useTheme } from "../context/ThemeContext";
 
 interface Props {
-  dictionary: DictionaryEntry[];
   availablePairs: string[];
   from: LangCode;
   to: Exclude<LangCode, "ru">;
 }
 
-export default function SearchComponent({ dictionary, availablePairs, from, to }: Props) {
+export default function SearchComponent({ availablePairs, from, to }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme, toggle } = useTheme();
@@ -24,69 +23,82 @@ export default function SearchComponent({ dictionary, availablePairs, from, to }
   const fromParam = from;
   const toParam   = to;
 
-  const isRussian = fromParam === ("ru");
+  const isRussian = fromParam === "ru";
   const script    = isRussian
     ? "cyr"
     : ((searchParams.get("script") as Script) ?? "lat");
 
-  const [query, setQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [query,         setQuery        ] = useState("");
+  const [filteredWords, setFilteredWords] = useState<DictionaryEntry[]>([]);
+  const [mounted,       setMounted      ] = useState(false);
+  const [isPending,     startTransition ] = useTransition();
+
   useEffect(() => setMounted(true), []);
 
   const isPairValid = availablePairs.includes(`${fromParam}-${toParam}`);
 
-  function buildParams(overrides: Record<string, string>) {
-    const p = new URLSearchParams({ from: fromParam, to: toParam, script, ...overrides });
-    return `/?${p.toString()}`;
+  function buildUrl(overrides: { from?: string; to?: string; script?: string }) {
+    const f = overrides.from   ?? fromParam;
+    const t = overrides.to     ?? toParam;
+    const s = overrides.script ?? script;
+    const basePath = `/${f}-${t}`;
+    if (f === "ru") return basePath;
+    return `${basePath}?script=${s}`;
   }
 
+  // ── Server search ──────────────────────────────────────────────────────────
+  const abortRef = useRef<AbortController | null>(null);
+
+  const runSearch = useCallback(
+    async (q: string, currentScript: Script) => {
+      if (!isPairValid || q.trim().length < 1) {
+        setFilteredWords([]);
+        return;
+      }
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const params = new URLSearchParams({
+          from:   fromParam,
+          to:     toParam,
+          q:      q.trim(),
+          script: currentScript,
+        });
+        const res = await fetch(`/api/search?${params}`, { signal: controller.signal });
+        if (!res.ok) return;
+        const data: DictionaryEntry[] = await res.json();
+        setFilteredWords(data);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== "AbortError") console.error(err);
+      }
+    },
+    [fromParam, toParam, isPairValid],
+  );
+
+  // Debounce: wait 150 ms after the user stops typing
+  useEffect(() => {
+    const id = setTimeout(() => runSearch(query, script), 150);
+    return () => clearTimeout(id);
+  }, [query, script, runSearch]);
+
+  // ── Query / script change handler ──────────────────────────────────────────
   const handleQueryChange = (val: string) => {
     setQuery(val);
     if (isRussian) return;
+
     const hasCyrillic = /[\u0400-\u04FF]/.test(val);
     let detectedScript: Script = script;
     if (val.length > 0) detectedScript = hasCyrillic ? "cyr" : "lat";
+
     if (detectedScript !== script) {
       startTransition(() => {
-        router.replace(buildParams({ script: detectedScript }), { scroll: false });
+        router.replace(buildUrl({ script: detectedScript }), { scroll: false });
       });
     }
   };
-
-  const normalizeApostrophes = (s: string) =>
-    s.replace(/[\u0027\u0060\u2019\u2018\u02BC\u02BB\u201B\uFF07]/g, "'");
-
-const normalize = (str: string) => 
-  normalizeApostrophes(str)
-    .replace(/ё/gi, "е")
-    .toUpperCase();
-
-const normalizeForSearch = (str: string, inputScript: Script) => {
-  if (isRussian) return normalize(str); 
-  
-  const latin = inputScript === "cyr" 
-    ? toLatinFromCyrillic(str, fromParam) 
-    : str;
-    
-  return normalize(latin);
-};
-
-  const filteredWords = useMemo(() => {
-    if (!isPairValid) return [];
-    const search = normalizeForSearch(query.trim(), script);
-    if (search.length < 1) return [];
-    return (dictionary ?? [])
-      .filter((entry) => normalizeForSearch(entry.source, "lat").includes(search))
-      .sort((a, b) => {
-        const aN = normalize(a.source), bN = normalize(b.source);
-        const aS = aN.startsWith(search), bS = bN.startsWith(search);
-        if (aS && !bS) return -1;
-        if (!aS && bS) return 1;
-        return aN.localeCompare(bN);
-      })
-      .slice(0, 15);
-  }, [query, script, dictionary, isPairValid]);
 
   return (
     <main style={{ maxWidth: "600px", margin: "10vh auto", fontFamily: "system-ui, sans-serif", padding: "0 20px" }}>
@@ -111,7 +123,7 @@ const normalizeForSearch = (str: string, inputScript: Script) => {
             gap: "12px",
           }}>
             <span style={{ fontSize: "20px", animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
-            Loading dictionary…
+            Sózlik júklenip atır...
           </div>
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -141,10 +153,8 @@ const normalizeForSearch = (str: string, inputScript: Script) => {
         <select
           value={`${fromParam}-${toParam}`}
           onChange={(e) => {
-            const [from, to] = e.target.value.split("-");
-            startTransition(() => {
-              router.push(buildParams({ from, to }));
-            });
+            const [f, t] = e.target.value.split("-");
+            startTransition(() => { router.push(buildUrl({ from: f, to: t })); });
           }}
           style={{
             padding: "8px 12px", borderRadius: "6px",
@@ -162,7 +172,7 @@ const normalizeForSearch = (str: string, inputScript: Script) => {
             {(["lat", "cyr"] as Script[]).map((s) => (
               <Link
                 key={s}
-                href={buildParams({ script: s })}
+                href={buildUrl({ script: s })}
                 style={{
                   padding: "8px 16px", fontSize: "14px", textDecoration: "none",
                   backgroundColor: script === s ? "var(--bg-active)" : "var(--bg-item)",

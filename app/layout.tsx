@@ -8,8 +8,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: { 
-    default: "O'zbekcha–Qaraqalpaqsha sózlik / lugʻat | Узбекско-каракалпакский словарь", 
-    template: "%s | O'zbekcha–Qaraqalpaqsha sózlik" 
+    default: "Qaraqalpaqsha sózlik / lugʻat | Каракалпакский словарь", 
+    template: "%s" 
   },
   description: "Pulsız onlayn qaraqalpaqsha sózlik. Bepul onlayn qoraqalpoqcha lugʻat. Бесплатный каракалпакский словарь онлайн.",
   keywords: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   "onlayn lug'at"
   ],
   openGraph: {
-    title: "O'zbekcha–Qaraqalpaqsha sózlik / lugʻat | Узбекско-каракалпакский словарь",
+    title: "Qaraqalpaqsha sózlik / lugʻat | Каракалпакский словарь",
     description: "Pulsız onlayn qaraqalpaqsha sózlik. Bepul onlayn qoraqalpoqcha lugʻat. Бесплатный каракалпакский словарь онлайн.",
     type: "website",
     locale: "uz_UZ",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="kaa" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {

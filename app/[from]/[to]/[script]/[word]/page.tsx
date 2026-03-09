@@ -101,8 +101,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const fromName    = LANG_NAMES[from]?.[script] ?? from;
   const toName      = LANG_NAMES[to]?.[script]   ?? to;
   const displayWord = (from as string) === "ru" ? entry.source : convertScript(entry.source, from, script);
-  const title       = `${displayWord} — ${fromName}–${toName} Dictionary`;
-  const description = `Definition and translation of "${displayWord}" from ${fromName} to ${toName}.`;
+  const title       = `${displayWord} — ${fromName}–${toName} awdarması | перевод | tarjima`;
+  const description = `"${displayWord}" — ${fromName}–${toName} awdarması hám túsindirmesi | перевод и объяснение | tarjima va tushuntirish.`;
   return { title, description, openGraph: { title, description, type: "article" } };
 }
 
@@ -118,7 +118,7 @@ export default async function WordPage({ params }: { params: Promise<Params> }) 
   const entry = await getDictionaryEntry(from, to, decoded);
   if (!entry) notFound();
 
-  const backHref = `/?from=${from}&to=${to}&script=${script}`;
+  const backHref = `/${from}-${to}?script=${script}`;
   const displayHeadword = (from as string) === "ru" ? entry.source : convertScript(entry.source, from, script);
 
   const isHtml = (from as string) === "ru";

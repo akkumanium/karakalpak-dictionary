@@ -1,12 +1,14 @@
 // lib/dictionary.ts (server-only)
+
 import "server-only";
 import path from "path";
 import fs from "fs/promises";
 import { LRUCache } from "lru-cache";
 
 export interface DictionaryEntry {
-  source: string;
-  karakalpak: string[];
+  source:           string;
+  sourceNormalized: string;
+  karakalpak:       string[];
 }
 
 const FILES: Record<string, { filePath: string; sourceKey: string; targetKey: string }> = {
@@ -16,8 +18,15 @@ const FILES: Record<string, { filePath: string; sourceKey: string; targetKey: st
 
 type Cached = { list: DictionaryEntry[]; map: Map<string, DictionaryEntry> };
 
-const cache = new LRUCache<string, Cached>({ max: 50 });
+const cache    = new LRUCache<string, Cached>({ max: 50 });
 const inFlight = new Map<string, Promise<Cached | null>>();
+
+function normalizeSource(s: string): string {
+  return s
+    .replace(/[\u0027\u0060\u2019\u2018\u02BC\u02BB\u201B\uFF07]/g, "'")
+    .replace(/ё/gi, "е")                                                  
+    .toUpperCase();
+}
 
 async function loadPairFromDisk(pair: string): Promise<Cached | null> {
   const cfg = FILES[pair];
@@ -29,14 +38,14 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
   const existing = inFlight.get(pair);
   if (existing) return existing;
 
-  const promise = (async () => {
+  const promise = (async (): Promise<Cached | null> => {
     try {
       const raw = await fs.readFile(cfg.filePath, "utf8");
       const arr = JSON.parse(raw);
 
       if (!Array.isArray(arr)) throw new Error(`Expected array in ${cfg.filePath}`);
 
-      const map = new Map<string, DictionaryEntry>();
+      const map  = new Map<string, DictionaryEntry>();
       const list: DictionaryEntry[] = [];
 
       for (const e of arr) {
@@ -46,11 +55,9 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
         const key = source.toLocaleLowerCase("tr").trim();
 
         const rawTarget = e[cfg.targetKey];
-        const targets = Array.isArray(rawTarget)
+        const targets   = Array.isArray(rawTarget)
           ? rawTarget.map(String)
-          : rawTarget
-          ? [String(rawTarget)]
-          : [];
+          : rawTarget ? [String(rawTarget)] : [];
 
         const existing = map.get(key);
         if (existing) {
@@ -58,7 +65,11 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
           for (const t of targets) set.add(t);
           existing.karakalpak = Array.from(set);
         } else {
-          const entry: DictionaryEntry = { source, karakalpak: Array.from(new Set(targets)) };
+          const entry: DictionaryEntry = {
+            source,
+            sourceNormalized: normalizeSource(source),
+            karakalpak: Array.from(new Set(targets)),
+          };
           map.set(key, entry);
           list.push(entry);
         }
