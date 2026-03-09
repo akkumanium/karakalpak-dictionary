@@ -145,7 +145,7 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
       </div>
 
       <h1 style={{ textAlign: "center", fontWeight: "400", color: "var(--fg)" }}>
-        {LANG_NAMES[fromParam]["lat"]} – {LANG_NAMES[toParam]["lat"]} Sózligi
+        {LANG_NAMES[fromParam]["lat"]} – {LANG_NAMES[toParam]["lat"]} Sózlik
       </h1>
 
       {/* ── Settings bar ── */}
