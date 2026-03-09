@@ -269,7 +269,6 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
 
         {query.length > 0 && filteredWords.length === 0 && (
           <p style={{ marginTop: "15px", color: "#ff0000", textAlign: "center" }}>
-            "{query}" sóziniń awdarması tabılmadı
           </p>
         )}
       </div>

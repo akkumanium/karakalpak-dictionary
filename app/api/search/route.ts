@@ -14,7 +14,7 @@ function normalizeQuery(q: string, script: Script, isRussian: boolean, from: Lan
   return latin.replace(/ё/gi, "е").toUpperCase();
 }
 
-const LIMIT = 15;
+const LIMIT = 5;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;

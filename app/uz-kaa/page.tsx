@@ -3,7 +3,7 @@ import { getDictionaryList, AVAILABLE_PAIRS } from "../../lib/dictionary";
 import SearchComponent from "../SearchComponent";
 
 export const metadata = {
-  title: "Qaraqalpaqsha – Ózbek sózlik, awdarma | Qaraqalpoqcha - O'zbekcha onlayn so'zlik va tarjimon",
+  title: "Qaraqalpaqsha – Ózbek sózlik, awdarmashı | Qaraqalpoqcha - O'zbekcha onlayn so'zlik va tarjimon",
   description: "Ózbek tilinen Qaraqalpaq tiline online sózlik. O'zbek tilinden qaraqalpaq tiline onlayn tarjimon.",
 };
 
