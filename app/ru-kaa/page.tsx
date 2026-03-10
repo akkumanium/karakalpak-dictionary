@@ -3,7 +3,7 @@ import { getDictionaryList, AVAILABLE_PAIRS } from "../../lib/dictionary";
 import SearchComponent from "../SearchComponent";
 
 export const metadata = {
-  title: "Qaraqalpaqsha – Orıssha sózlik, awdarmashı | Каракалпакский – Русский онлайн словарь и переводчик",
+  title: "Qaraqalpaqsha – Orıssha sózlik | Каракалпакский – Русский онлайн словарь",
   description: "Orıs tilinen Qaraqalpaq tiline online sózlik. Переводчик с русского на каракалпакский онлайн.",
 };
 

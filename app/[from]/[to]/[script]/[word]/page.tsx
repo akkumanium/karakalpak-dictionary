@@ -101,8 +101,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const fromName    = LANG_NAMES[from]?.[script] ?? from;
   const toName      = LANG_NAMES[to]?.[script]   ?? to;
   const displayWord = (from as string) === "ru" ? entry.source : convertScript(entry.source, from, script);
-  const title       = `${displayWord} — ${fromName}–${toName} awdarması | перевод | tarjima`;
-  const description = `"${displayWord}" — ${fromName}–${toName} awdarması hám túsindirmesi | перевод и объяснение | tarjima va tushuntirish.`;
+  const title       = `${displayWord} — ${fromName}–${toName} sózlik | словарь | so'zlik`;
+  const description = `"${displayWord}" — ${fromName}–${toName} sózlik | awdarması hám túsindirmesi | перевод и объяснение | tarjima va tushuntirish.`;
   return { title, description, openGraph: { title, description, type: "article" } };
 }
 
