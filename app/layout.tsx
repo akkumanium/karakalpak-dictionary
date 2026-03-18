@@ -36,6 +36,7 @@ export const metadata: Metadata = {
     "online qoraqalpoq lug'at",
     "onlayn lug'at",
     "qq sózlik",
+    "tarjima",
     "qqsozlik",
     "sóziniń mánisi",
     "degen ne",
