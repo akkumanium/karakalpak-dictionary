@@ -1,0 +1,364 @@
+:root {
+  --bg:             #ffffff;
+  --fg:             #333333;
+  --fg-muted:       #888888;
+  --fg-subtle:      #555555;
+  --border:         #cccccc;
+  --border-light:   #eeeeee;
+  --border-lighter: #f9f9f9;
+  --accent:         #0f766e;
+  --accent-soft:    rgba(15, 118, 110, 0.16);
+  --input-border:   #333333;
+  --bg-item:        #ffffff;
+  --bg-hover:       #f5f5f5;
+  --bg-active:      #333333;
+  --fg-active:      #ffffff;
+  --shadow:         rgba(0, 0, 0, 0.1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] {
+  --bg:             #111111;
+  --fg:             #e5e5e5;
+  --fg-muted:       #999999;
+  --fg-subtle:      #aaaaaa;
+  --border:         #3a3a3a;
+  --border-light:   #2a2a2a;
+  --border-lighter: #1e1e1e;
+  --accent:         #5eead4;
+  --accent-soft:    rgba(94, 234, 212, 0.2);
+  --input-border:   #e5e5e5;
+  --bg-item:        #1a1a1a;
+  --bg-hover:       #2a2a2a;
+  --bg-active:      #e5e5e5;
+  --fg-active:      #111111;
+  --shadow:         rgba(0, 0, 0, 0.5);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  transition: background-color 0.2s, color 0.2s;
+  font-family: var(--font-geist-sans), "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+.site-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-container {
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--border-light);
+  background: radial-gradient(900px 120px at 50% -40px, var(--border-lighter), transparent 70%), var(--bg);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 0;
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-link {
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 16px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.header-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.header-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem; /* space between icon and text */
+  text-decoration: none;
+}
+
+.footer-icon {
+  font-size: 1.2rem; /* or whatever size fits your design */
+}
+
+/* Optional hover effect */
+.footer-link:hover .footer-icon {
+  color: #0088cc; /* Telegram blue */
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.brand-title {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border-light);
+  background: linear-gradient(0deg, var(--border-lighter) 0%, transparent 65%), var(--bg);
+  margin-top: 0px;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0 40px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-title {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.footer-copy {
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+.footer-link {
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 18px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-item);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.footer-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg);
+}
+
+.footer-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.about-page {
+  padding: 40px 0 64px;
+}
+
+.about-page.site-container {
+  max-width: 100%;
+  padding-left: clamp(32px, 8vw, 140px);
+  padding-right: clamp(20px, 4vw, 80px);
+}
+
+.about-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 24px;
+  align-items: start;
+  min-width: 0;
+}
+
+.about-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.about-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+.about-title {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.about-lead {
+  margin: 0;
+  font-size: 18px;
+  color: #272727;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+[data-theme="dark"] .about-lead {
+  color: #ffffff;
+}
+
+.about-note {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  background: linear-gradient(120deg, var(--border-lighter), transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.about-note-text {
+  color: var(--fg-subtle);
+  font-size: 15px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.about-note-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.about-note-link:hover {
+  text-decoration: underline;
+}
+
+.about-footer {
+  margin-top: 28px;
+}
+
+.about-back {
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.about-back:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .header-inner {
+    gap: 12px;
+    padding: 16px 0;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    padding: 24px 0;
+  }
+
+  .brand-title {
+    font-size: 20px;
+    margin-left: 16px;
+  }
+
+  .header-link {
+    font-size: 14px;
+    padding: 5px 10px;
+    white-space: nowrap;
+  }
+
+  .footer-link {
+    font-size: 16px;
+    padding: 6px 12px;
+  }
+
+  .about-page {
+    padding: 28px 0 48px;
+  }
+
+  .about-page.site-container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .about-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .about-title {
+    font-size: 28px;
+  }
+
+  .about-lead {
+    font-size: 16px;
+  }
+
+  .about-note {
+    padding: 14px;
+  }
+}
