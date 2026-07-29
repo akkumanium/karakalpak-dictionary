@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getDictionaryList, AVAILABLE_PAIRS } from "../../lib/dictionary";
+import { AVAILABLE_PAIRS } from "../../lib/dictionary";
 import SearchComponent from "../SearchComponent";
 
 const title = "Qaraqalpaq tiliniń túsindirme sózligi | Толковый Каракалпакский словарь | QQ sózlik";
@@ -23,14 +23,7 @@ export const metadata = {
   },
 };
 
-export default async function KaaKaaPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ script?: string }>;
-}) {
-  const params = await searchParams;
-  const dictionary = await getDictionaryList("kaa", "kaa") ?? [];
-
+export default function KaaKaaPage() {
   return (
     <Suspense fallback={<div style={{ textAlign: "center", marginTop: "10vh" }}>Sózlik júklenip atır...</div>}>
       <SearchComponent

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getDictionaryList, AVAILABLE_PAIRS } from "../../lib/dictionary";
+import { AVAILABLE_PAIRS } from "../../lib/dictionary";
 import SearchComponent from "../SearchComponent";
 
 const title = "Russha - Qaraqalpaqsha sózlik | Русский - Каракалпакский онлайн словарь";
@@ -23,14 +23,7 @@ export const metadata = {
   },
 };
 
-export default async function RuKaaPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ script?: string }>;
-}) {
-  const params = await searchParams;
-  const dictionary = await getDictionaryList("ru", "kaa") ?? [];
-
+export default function RuKaaPage() {
   return (
     <Suspense fallback={<div style={{ textAlign: "center", marginTop: "10vh" }}>Sózlik júklenip atır...</div>}>
       <SearchComponent

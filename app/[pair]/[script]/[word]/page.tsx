@@ -8,8 +8,16 @@ import { parsePairSegment, toPairSegment } from "../../../../lib/routes";
 
 interface Params { pair: string; script: Script; word: string; }
 
-export const revalidate = 86400;
+// Dictionary data is bundled with each deployment, so cached entry pages stay
+// valid until the next deployment replaces the Full Route Cache.
+export const revalidate = false;
 export const dynamicParams = true;
+
+// Opt this dynamic route into on-demand static generation. Pre-rendering the
+// entire dictionary during the build would create roughly 177,000 pages.
+export function generateStaticParams(): Params[] {
+  return [];
+}
 
 // ─── HTML Translation Renderer ────────────────────────────────────────────────
 
