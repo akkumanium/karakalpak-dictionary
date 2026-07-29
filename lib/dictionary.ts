@@ -4,6 +4,9 @@ import "server-only";
 import path from "path";
 import fs from "fs/promises";
 import { LRUCache } from "lru-cache";
+import { toLatinFromCyrillic } from "./transliterate";
+import { type LangCode } from "./languages";
+import { normalizeLookupKey, normalizeSearchCase } from "./normalize";
 
 export interface DictionaryEntry {
   source:           string;
@@ -11,9 +14,17 @@ export interface DictionaryEntry {
   karakalpak:       string[];
 }
 
-const FILES: Record<string, { filePath: string; sourceKey: string; targetKey: string }> = {
-  "uz-kaa": { filePath: path.join(process.cwd(), "data", "uz-kaa.json"), sourceKey: "uzbek",  targetKey: "karakalpak" },
-  "ru-kaa": { filePath: path.join(process.cwd(), "data", "ru-kaa.json"), sourceKey: "word",   targetKey: "translation" },
+type DictionaryConfig = {
+  filePath: string;
+  sourceKey: string;
+  targetKey: string;
+  from: LangCode;
+};
+
+const FILES: Record<string, DictionaryConfig> = {
+  "uz-kaa":  { filePath: path.join(process.cwd(), "data", "uz-kaa.json"),  sourceKey: "uzbek", targetKey: "karakalpak", from: "uz"  },
+  "ru-kaa":  { filePath: path.join(process.cwd(), "data", "ru-kaa.json"),  sourceKey: "word",  targetKey: "translation", from: "ru"  },
+  "kaa-kaa": { filePath: path.join(process.cwd(), "data", "kaa-kaa.json"), sourceKey: "word",  targetKey: "translation", from: "kaa" },
 };
 
 type Cached = { list: DictionaryEntry[]; map: Map<string, DictionaryEntry> };
@@ -21,11 +32,14 @@ type Cached = { list: DictionaryEntry[]; map: Map<string, DictionaryEntry> };
 const cache    = new LRUCache<string, Cached>({ max: 50 });
 const inFlight = new Map<string, Promise<Cached | null>>();
 
-function normalizeSource(s: string): string {
-  return s
-    .replace(/[\u0027\u0060\u2019\u2018\u02BC\u02BB\u201B\uFF07]/g, "'")
-    .replace(/ё/gi, "е")                                                  
-    .toUpperCase();
+function normalizeSource(s: string, lang: LangCode): string {
+  const apostropheNorm = s.replace(/[\u0027\u0060\u2019\u2018\u02BC\u02BB\u201B\uFF07]/g, "'");
+  const hasCyrillic = /[\u0400-\u04FF]/.test(apostropheNorm);
+  const latin = (lang !== "ru" && hasCyrillic)
+    ? toLatinFromCyrillic(apostropheNorm, lang)
+    : apostropheNorm;
+
+  return normalizeSearchCase(latin, lang);
 }
 
 async function loadPairFromDisk(pair: string): Promise<Cached | null> {
@@ -52,7 +66,7 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
         const source = String(e[cfg.sourceKey] ?? "").normalize("NFC").trim();
         if (!source) continue;
 
-        const key = source.toLocaleLowerCase("tr").trim();
+        const key = normalizeLookupKey(source, cfg.from);
 
         const rawTarget = e[cfg.targetKey];
         const targets   = Array.isArray(rawTarget)
@@ -67,7 +81,7 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
         } else {
           const entry: DictionaryEntry = {
             source,
-            sourceNormalized: normalizeSource(source),
+            sourceNormalized: normalizeSource(source, cfg.from),
             karakalpak: Array.from(new Set(targets)),
           };
           map.set(key, entry);
@@ -93,7 +107,7 @@ async function loadPairFromDisk(pair: string): Promise<Cached | null> {
 export async function getDictionaryEntry(from: string, to: string, word: string): Promise<DictionaryEntry | null> {
   const data = await loadPairFromDisk(`${from}-${to}`);
   if (!data) return null;
-  const key = word.normalize("NFC").toLocaleLowerCase("tr").trim();
+  const key = normalizeLookupKey(word, from as LangCode);
   return data.map.get(key) ?? null;
 }
 
@@ -103,3 +117,4 @@ export async function getDictionaryList(from: string, to: string): Promise<Dicti
 }
 
 export const AVAILABLE_PAIRS = Object.keys(FILES);
+

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getDictionaryList } from "../../../lib/dictionary";
 import { toLatinFromCyrillic } from "../../../lib/transliterate";
 import { type Script, type LangCode } from "../../../lib/languages";
+import { normalizeSearchCase } from "../../../lib/normalize";
 
 // Normalizes the user's query to match the pre-computed sourceNormalized format.
 // Must stay in sync with normalizeSource() in lib/dictionary.ts.
@@ -11,10 +12,10 @@ function normalizeQuery(q: string, script: Script, isRussian: boolean, from: Lan
   const latin = (!isRussian && script === "cyr")
     ? toLatinFromCyrillic(apostropheNorm, from)
     : apostropheNorm;
-  return latin.replace(/ё/gi, "е").toUpperCase();
+  return normalizeSearchCase(latin, from);
 }
 
-const LIMIT = 1;
+const LIMIT = 5;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -24,44 +25,45 @@ export async function GET(req: NextRequest) {
   const script = (searchParams.get("script") ?? "lat") as Script;
 
   if (q.length < 1) {
-    return NextResponse.json([], {
+    return NextResponse.json({ exact: null, results: [] }, {
       headers: { "Cache-Control": "public, max-age=0" },
     });
   }
 
   const isRussian = from === "ru";
   const list = await getDictionaryList(from, to);
-  if (!list) return NextResponse.json([], { status: 404 });
+  if (!list) return NextResponse.json({ exact: null, results: [] }, { status: 404 });
 
-  // Normalize the query once — never again inside the loop.
   const search = normalizeQuery(q, script, isRussian, from);
 
   const prefixMatches:  typeof list = [];
   const partialMatches: typeof list = [];
+  let exactMatch: typeof list[number] | null = null;
 
   for (const entry of list) {
-    // sourceNormalized was computed at load time, so this is two plain string ops.
     const norm = entry.sourceNormalized;
     if (!norm.includes(search)) continue;
 
+    if (norm === search) {
+      exactMatch = entry;
+      continue;
+    }
+
     if (norm.startsWith(search)) {
-      prefixMatches.push(entry);
-      // Once we have LIMIT prefix matches we can't do better — stop entirely.
-      if (prefixMatches.length >= LIMIT) break;
+      if (prefixMatches.length < LIMIT) prefixMatches.push(entry);
     } else if (partialMatches.length < LIMIT) {
       partialMatches.push(entry);
     }
   }
 
-  // Prefix bucket: sort alphabetically by normalized form for stable, predictable ordering.
-  // Partial bucket: already naturally in file order; sort only if not yet full.
   prefixMatches.sort((a, b) => a.sourceNormalized.localeCompare(b.sourceNormalized));
 
   const results = [...prefixMatches, ...partialMatches].slice(0, LIMIT);
 
-  return NextResponse.json(results, {
+  return NextResponse.json({ exact: exactMatch, results }, {
     headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
     },
   });
 }
+

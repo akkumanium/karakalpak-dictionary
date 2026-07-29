@@ -10,6 +10,7 @@ export interface Direction {
 export const DIRECTIONS: Direction[] = [
   { from: "uz", to: "kaa", label: "Oʻzbekcha → Qaraqalpaqsha" },
   { from: "ru", to: "kaa", label: "Русский → Қарақалпақша" },
+  { from: "kaa", to: "kaa", label: "Qaraqalpaqsha -> Qaraqalpaqsha" },
 ];
 
 export const LANG_NAMES: Record<LangCode, { lat: string; cyr: string }> = {

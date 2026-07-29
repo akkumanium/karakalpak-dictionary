@@ -2,9 +2,25 @@ import { Suspense } from "react";
 import { getDictionaryList, AVAILABLE_PAIRS } from "../../lib/dictionary";
 import SearchComponent from "../SearchComponent";
 
+const title = "Russha - Qaraqalpaqsha sózlik | Русский - Каракалпакский онлайн словарь";
+const description = "Rus tilinen Qaraqalpaq tiline online sózlik. Переводчик с русского на каракалпакский онлайн.";
+
 export const metadata = {
-  title: "Qaraqalpaqsha – Orıssha sózlik | Каракалпакский – Русский онлайн словарь",
-  description: "Orıs tilinen Qaraqalpaq tiline online sózlik. Переводчик с русского на каракалпакский онлайн.",
+  title,
+  description,
+  alternates: {
+    canonical: "/ru-kaa",
+  },
+  openGraph: {
+    title,
+    description,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+  },
 };
 
 export default async function RuKaaPage({

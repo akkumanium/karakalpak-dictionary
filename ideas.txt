@@ -1,0 +1,9 @@
+1) put <br> after semicolons, but note: брак (Done!)
+2) implement ads
+3) add info page on the top
+4) change automatic search to be latin in ru > kaa ? (dubious, latin kaa sucks there)
+5) some words are absent: чистить
+6) russian words are transliterated too when formatting doesn't exist
+7) delete all *s from ru-kaa.json
+8) do links after см.
+9) combine е and ё (Done!)

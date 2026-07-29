@@ -1,19 +1,17 @@
 import { MetadataRoute } from 'next'
+import { generateSitemaps } from './sitemap'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdictionary.com'
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://qqsozlik.com').replace(/\/$/, '')
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const sitemaps = await generateSitemaps()
+
   return {
     rules: {
       userAgent: '*',
       allow: '/',
       disallow: '/private/',
     },
-    sitemap: [
-      `${siteUrl}/sitemap/index.xml`,
-      `${siteUrl}/sitemap/ru-kaa-0.xml`,
-      `${siteUrl}/sitemap/ru-kaa-1.xml`,
-      `${siteUrl}/sitemap/uz-kaa-0.xml`,
-    ],
+    sitemap: sitemaps.map(({ id }) => `${siteUrl}/sitemap/${id}.xml`),
   }
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition, useCallback } from "react";
+import { useState, useEffect, useRef, useTransition, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { type DictionaryEntry } from "../lib/dictionary";
 import { DIRECTIONS, LANG_NAMES, type Script, type LangCode } from "../lib/languages";
 import { convertScript } from "../lib/transliterate";
+import { toPairSegment } from "../lib/routes";
 import { useTheme } from "../context/ThemeContext";
 
 interface Props {
@@ -31,9 +32,39 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
   const [query,         setQuery        ] = useState("");
   const [filteredWords, setFilteredWords] = useState<DictionaryEntry[]>([]);
   const [mounted,       setMounted      ] = useState(false);
+  const [hasSearched,   setHasSearched  ] = useState(false);
   const [isPending,     startTransition ] = useTransition();
+  const [showNoResults, setShowNoResults] = useState(false);
+  const noResultsTimerRef = useRef<number | null>(null);
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (noResultsTimerRef.current !== null) {
+      window.clearTimeout(noResultsTimerRef.current);
+      noResultsTimerRef.current = null;
+    }
+
+    const shouldShow =
+      hasSearched &&
+      query.trim().length > 0 &&
+      filteredWords.length === 0;
+
+    if (!shouldShow) {
+      setShowNoResults(false);
+      return;
+    }
+
+    noResultsTimerRef.current = window.setTimeout(() => {
+      setShowNoResults(true);
+    }, 600);
+
+    return () => {
+      if (noResultsTimerRef.current !== null) {
+        window.clearTimeout(noResultsTimerRef.current);
+        noResultsTimerRef.current = null;
+      }
+    };
+  }, [hasSearched, query, filteredWords.length]);
 
   const isPairValid = availablePairs.includes(`${fromParam}-${toParam}`);
 
@@ -41,21 +72,26 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
     const f = overrides.from   ?? fromParam;
     const t = overrides.to     ?? toParam;
     const s = overrides.script ?? script;
-    const basePath = `/${f}-${t}`;
+    const basePath = `/${toPairSegment(f, t)}`;
     if (f === "ru") return basePath;
     return `${basePath}?script=${s}`;
   }
 
   // ── Server search ──────────────────────────────────────────────────────────
   const abortRef = useRef<AbortController | null>(null);
+  const searchIdRef = useRef(0);
+
+  type SearchResponse = { exact: DictionaryEntry | null; results: DictionaryEntry[] };
 
   const runSearch = useCallback(
     async (q: string, currentScript: Script) => {
-      if (!isPairValid || q.trim().length < 1) {
+      const trimmed = q.trim();
+      if (!isPairValid || trimmed.length < 1) {
         setFilteredWords([]);
         return;
       }
 
+      const searchId = ++searchIdRef.current;
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -64,29 +100,39 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
         const params = new URLSearchParams({
           from:   fromParam,
           to:     toParam,
-          q:      q.trim(),
+          q:      trimmed,
           script: currentScript,
         });
         const res = await fetch(`/api/search?${params}`, { signal: controller.signal });
         if (!res.ok) return;
-        const data: DictionaryEntry[] = await res.json();
-        setFilteredWords(data);
+        const data: SearchResponse = await res.json();
+        if (searchIdRef.current !== searchId) return;
+
+        if (data.exact) {
+          const wordHref = `/${toPairSegment(fromParam, toParam)}/${currentScript}/${encodeURIComponent(data.exact.source)}`;
+          setFilteredWords([]);
+          startTransition(() => {
+            router.push(wordHref);
+          });
+          return;
+        }
+
+        setFilteredWords(Array.isArray(data.results) ? data.results : []);
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== "AbortError") console.error(err);
       }
     },
-    [fromParam, toParam, isPairValid],
+    [fromParam, toParam, isPairValid, router, startTransition],
   );
 
-  // Debounce: wait 150 ms after the user stops typing
-  useEffect(() => {
-    const id = setTimeout(() => runSearch(query, script), 150);
-    return () => clearTimeout(id);
-  }, [query, script, runSearch]);
 
   // ── Query / script change handler ──────────────────────────────────────────
   const handleQueryChange = (val: string) => {
     setQuery(val);
+    setHasSearched(false);
+    searchIdRef.current += 1;
+    abortRef.current?.abort();
+    setFilteredWords([]);
     if (isRussian) return;
 
     const hasCyrillic = /[\u0400-\u04FF]/.test(val);
@@ -98,6 +144,29 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
         router.replace(buildUrl({ script: detectedScript }), { scroll: false });
       });
     }
+  };
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setFilteredWords([]);
+      setHasSearched(false);
+      return;
+    }
+
+    setHasSearched(true);
+    const detectedScript: Script = isRussian
+      ? "cyr"
+      : (/[\u0400-\u04FF]/.test(trimmed) ? "cyr" : "lat");
+
+    if (!isRussian && detectedScript !== script) {
+      startTransition(() => {
+        router.replace(buildUrl({ script: detectedScript }), { scroll: false });
+      });
+    }
+
+    runSearch(trimmed, detectedScript);
   };
 
   return (
@@ -187,41 +256,71 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
         )}
       </div>
 
-      {/* ── Cyrillic character buttons (Uzbek Cyrillic only) ── */}
-      {script === "cyr" && !isRussian && (
-        <div style={{ display: "flex", gap: "8px", marginBottom: "10px", justifyContent: "center" }}>
-          {["ҳ", "қ", "ғ", "ў"].map((char) => (
-            <button
-              key={char}
-              onClick={() => { handleQueryChange(query + char); inputRef.current?.focus(); }}
-              style={{
-                padding: "8px 15px", fontSize: "18px", borderRadius: "6px",
-                border: "1px solid var(--border)", backgroundColor: "var(--bg-item)",
-                color: "var(--fg)", cursor: "pointer", fontWeight: "bold",
-              }}
-            >
-              {char}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* -- Special character buttons (by language/script) -- */}
+      {(() => {
+        if (isRussian) return null;
+
+        const specialChars =
+          fromParam === "uz" && script === "cyr"
+            ? ["\u04bb", "\u049b", "\u0493", "\u045e"]
+            : fromParam === "kaa" && script === "lat"
+              ? ["\u00e1", "\u0261\u0301", "\u0131", "\u0144", "\u00f3", "\u00fa"]
+              : fromParam === "kaa" && script === "cyr"
+                ? ["\u04d9", "\u04a3", "\u0493", "\u049b", "\u04af", "\u04e9", "\u045e", "\u04b3"]
+                : [];
+
+        if (specialChars.length === 0) return null;
+        return (
+          <div style={{ display: "flex", gap: "8px", marginBottom: "10px", justifyContent: "center" }}>
+            {specialChars.map((char) => (
+              <button
+                key={char}
+                onClick={() => { handleQueryChange(query + char); inputRef.current?.focus(); }}
+                style={{
+                  padding: "8px 15px", fontSize: "18px", borderRadius: "6px",
+                  border: "1px solid var(--border)", backgroundColor: "var(--bg-item)",
+                  color: "var(--fg)", cursor: "pointer", fontWeight: "bold",
+                }}
+              >
+                {char}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── Search ── */}
       <div style={{ position: "relative" }}>
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
-          placeholder="Sóz izleń..."
-          autoFocus
-          style={{
-            width: "100%", padding: "12px 15px", fontSize: "18px",
-            border: "2px solid var(--input-border)", borderRadius: "8px",
-            boxSizing: "border-box", outline: "none",
-            backgroundColor: "var(--bg)", color: "var(--fg)",
-          }}
-        />
+        <form
+          onSubmit={handleSearchSubmit}
+          style={{ display: "flex", gap: "10px", alignItems: "center" }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder="Sóz izlew..."
+            autoFocus
+            style={{
+              flex: 1, padding: "12px 15px", fontSize: "18px",
+              border: "2px solid var(--input-border)", borderRadius: "8px",
+              boxSizing: "border-box", outline: "none",
+              backgroundColor: "var(--bg)", color: "var(--fg)",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: "12px 16px", fontSize: "16px",
+              borderRadius: "8px", border: "2px solid var(--input-border)",
+              backgroundColor: "var(--bg-item)", color: "var(--fg)",
+              cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            Izlew
+          </button>
+        </form>
 
         {filteredWords.length > 0 && (
           <ul style={{
@@ -233,12 +332,11 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
               const displayHeadword = isRussian
                 ? entry.source
                 : convertScript(entry.source, fromParam, script);
-              const wordHref = `/${fromParam}/${toParam}/${script}/${encodeURIComponent(entry.source)}`;
+              const wordHref = `/${toPairSegment(fromParam, toParam)}/${script}/${encodeURIComponent(entry.source)}`;
               const rawTranslation = entry.karakalpak[0] ?? "";
               const displayTranslation = isRussian
                 ? rawTranslation
                 : convertScript(rawTranslation, toParam, script);
-
               return (
                 <li key={entry.source} style={{ borderBottom: "1px solid var(--border-lighter)" }}>
                   <Link
@@ -267,11 +365,13 @@ export default function SearchComponent({ availablePairs, from, to }: Props) {
           </ul>
         )}
 
-        {query.length > 0 && filteredWords.length === 0 && (
+        {showNoResults && (
           <p style={{ marginTop: "15px", color: "#ff0000", textAlign: "center" }}>
+            Keshirersiz, "{query}" sóziniń awdarması tabılmadı
           </p>
         )}
       </div>
     </main>
   );
 }
+

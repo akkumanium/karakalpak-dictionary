@@ -23,7 +23,9 @@
 # misc
 .DS_Store
 *.pem
-ideas.txt
+data/combined.txt
+data/fix.py
+data/into_json.py
 
 # debug
 npm-debug.log*
